@@ -1,0 +1,28 @@
+{
+    "tags": {
+        "allowUnknownTags": true
+    },
+    "source": {
+        "includePattern": ".+\\.js(doc|x)?$",
+        "excludePattern": "(^|\\/|\\\\)_"
+    },
+    "plugins": ["plugins/markdown"],
+    "templates": {
+        "cleverLinks": false,
+        "monospaceLinks": false,
+        "default": {
+            
+            "staticFiles":{
+                "include": [
+                    "public/images"
+                ]
+            },
+            "outputSourceFiles": true
+        }
+    },
+    "package": {
+    "name": "My New Project Name",
+    "version": "1.0.0",
+    "description": "A description of my new project."
+  }
+}

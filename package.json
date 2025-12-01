@@ -1,0 +1,25 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "Ecosystem",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "devStart": "DEBUG=express:* nodemon app.js",
+    "buildDocs": "jsdoc public README.md -c jsdocconfig.json -t node_modules/docolatte "
+  },
+  "dependencies": {
+    "@matter/main": "^0.15.6",
+    "express": "^5.1.0",
+    "jsdoc": "^4.0.5",
+    "matter-js": "^0.20.0",
+    "p5play": "^3.33.6",
+    "toxiclibsjs": "^0.3.3"
+  },
+  "devDependencies": {
+    "docolatte": "^4.5.1"
+  }
+}
