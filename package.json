@@ -9,7 +9,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "devStart": "DEBUG=express:* nodemon app.js",
-    "buildDocs": "jsdoc public README.md -c jsdocconfig.json -t node_modules/docolatte "
+    "buildDocs": "jsdoc public README.md -c jsdocconfig.json -t node_modules/docolatte -d docs/ "
   },
   "dependencies": {
     "@matter/main": "^0.15.6",
