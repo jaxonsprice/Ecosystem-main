@@ -1,49 +1,57 @@
-//Import express
-let express = require('express');
-let fs = require('fs');
-let path = require('path');
-// Create the Express app
-let app = express();
+
+const { app, BrowserWindow, ipcMain } = require('electron')
+const fs = require('fs')
+const path = require('path')
+ const {dialog, Menu, MenuItem} = require('electron/main')
+
+ const menu = new Menu()
+
+ if (process.platform === 'darwin') {
+    const appMenu = new MenuItem({role: 'appMenu'})
+    menu.append(appMenu)
+ }
 
 
-app.get('/images', (req,res) => {
-    fs.readdir('public/images', (err, files) => {
-        if(err) {
-            res.status(500).send('Error reading files'); 
-        } else {
-            res.json({ files });
-        }
-    });
-});
-
-app.get('/Sound_Effects', (req,res) => {
-    fs.readdir('public/Sound_Effects', (err, files) => {
-        if(err) {
-            res.status(500).send('Error reading files'); 
-        } else {
-            res.json({ files });
-        }
-    });
-});
+function createWindow() {
+  const win = new BrowserWindow({
+    width: 500,
+    height: 500,
+    webPreferences: {
+    preload: path.join(__dirname, 'preload.js'),
+    contextIsolation: true, // REQUIRED
+    nodeIntegration: false
+  }
+  })
 
 
-// Set the port used for server traffic.
-let port = 3000;
+ const submenu = Menu.buildFromTemplate([{
+  label: 'DevTools',
+  click: () => win.webContents.openDevTools(),
+  accelerator: 'CommandOrControl+Alt+F'
+}, {
+    label: 'Reset',
+    click: () => win.reload(),
+    accelerator: 'R'
+}])
 
-// Middleware to serve static files from 'public' directory
-app.use(express.static("public"));
+menu.append(new MenuItem({ label: 'Settings', submenu }))
+
+Menu.setApplicationMenu(menu)
+
+
+  win.loadFile(path.join(__dirname, 'public/index.html'))
+//   win.webContents.openDevTools() // ← opens the console
+
+}
 
 
 
-//Step 3 code goes here
-//Initialize file system module
-// Middleware to serve static files from 'songs' directory
-// Middleware for parsing JSON files
-// API endpoint to get songs folder
-// File directory endpoint to get list of file names
-// Read file names into a JSON object - throw error otherwise
+ipcMain.handle('get-images', async () => {
+  console.log('IPC request received!') // must log in terminal
+  const dir = path.join(__dirname, 'public/images')
+  const files = await fs.promises.readdir(dir)
+  console.log('Images found:', files)
+  return { files }  // Must be { files: [...] }
+})
 
-//Run server at port
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
+app.whenReady().then(createWindow)

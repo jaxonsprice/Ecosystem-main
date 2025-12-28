@@ -1,185 +1,111 @@
+
 /**
  * @name Ecosystem
- *  @file the main p5.js runtime 
- * this is a personal project to develop a fish simulation. *Thank you for visiting.*
- * 
+ *  @file the main p5.js runtime
+ * this is a personal project to develop a fish simulation. Everything in this program has been coded by hand.
+ *
  * @version 0.1
  * @author Jaxon Price
  * @copyright 2025
-*/
-
-
-test('testing',()=>{
-   return true
-}
-)
+ */
 
 // ==Global variables==
-
-
 // Objects
+let sound;
+let file;
 let world;
-let fishes = []
-
-// image files
-let images = [];
-let img;
-let imges;
-let files;
-let filteredFiles;
-
-// sound files
-let soundEffects = []
-let soundFiles;
-let SOUNDS;
-let sounds;
-let filteredSounds;
+let predator;
+let water;
+let flock;
+let foods = [];
 
 //  variable
 let randomizer;
-let maxFish = 10;
-
-// Sound effects
-let spawnSound;
-
-// time variable
-let t = 0;
-
-let spawnButton = {
-    radius : 15,
-    fill: 'green',
-    stroke: [0, 0, 0, 0]
- };
-
+let maxFish = 50;
 
 // == Asynchronous setup ==
 async function setup() {
 
-     // Create the canvas. Fits to the screen size.
-   createCanvas(500, 500);
+  // Create the canvas. Fits to the screen size.
+  createCanvas(windowWidth, windowHeight);
+  sound = new Sound();
+  file = new File();
+  world = new World();
+  flock = new Flock();
+  water = new Water(0, height / 3, width, height);
 
-    world = new World();
-    // load the JSON object containing the image files located in the get request for /images
-    img = await loadJSON("/images");
-    imges = Object.values(img);
+  // let sounds = await sound.soundFiles
+  //  sound.loadSounds(sounds)
 
-    soundFiles = await loadJSON("/Sound_Effects");
-    SOUNDS = Object.values(soundFiles);
+// load the image files.
+let images = await file.loadImageList()
+let addresses = file.getAddresses(images)
 
-    // Store the array containing the file paths
-    files = imges[0]
-    sounds = SOUNDS[0]
-    console.log(sounds)
-
-    //  filter out the files that end in .png
-    filteredFiles = files.filter(item => item.endsWith('.png'))
-    // console.log(filteredFiles)
-
-    filteredSounds = sounds.filter(item => item.endsWith('.wav'))
-    // console.log(filteredSounds)
-
-   spawnButton = new Button("circle", width/2, 100)
-    
-   // Iterate through the array of files, and make a promise for each
-    for (let i=0; i < filteredFiles.length; i++){
-      images[i] = await loadImage('/images/' + filteredFiles[i])
-      // console.log('/images/' + filteredFiles[i])
-    } 
-
-    for (let i=0; i < filteredSounds.length; i++){
-      soundEffects[i] = await loadSound('/Sound_Effects/' + filteredSounds[i])
-      // console.log(`[${i}]/Sound_Effects/` + filteredSounds[i])
-    } 
-
-    // Assign sound effect values
-   spawnSound = soundEffects[38];
+for (let i = 0; i < addresses.length; i++) {
+  file.images[i] = await file.loadFish(addresses, i)
 }
 
+  predator = new Predator(
+    random(0, width),
+    random(0, height),
+    75,
+    file.getFish(1)
+  );
 
-
-function draw() { // the p5.js runtime
-
-  world.draw();
-  let n = noise(t);
-    // Increment the noise value 
-  t += 0.1;
-
-  // Set the background color
-  background(220);
-  
-  
-  // Run each instance of the fish object.
-  for (let fish of fishes) {
-    
-    fish.show();
-  
-    
+  for (let i = 0; i < maxFish; i++) {
+    flock.addBoid(
+      new SchoolFish(
+        random(0, width),
+        random(0, height),
+        35,
+        file.getRandomFish()
+      )
+    );
   }
-
-  // activate spawn buttons
-  spawnButton.render();
-  spawnButton.check();
-  spawnButton.update();
-
-  // spawn button default state
-  spawnButton.radius = 15;
-  spawnButton.fill = 'green';
-  spawnButton.stroke = [0, 0, 0, 0];
-  spawnButton.active = true;
-
-  // Spawn button hover state
-  if (spawnButton.hover == true) {
-  spawnButton.fill = "red"
-  spawnButton.radius += 5
-  }
-
-  // Spawn a img when the button is pressed!
-  spawnButton.onPressBegin = function() {
-  // random variable
-  randomizer = floor(random(images.length))
-  // randomly choose an image for the object from the array.
-  let fishSize = 35
-  let fishWeight = 10
-  console.log(fishes)
-    fishes.push(new Fish(images[randomizer], spawnButton.x, spawnButton.y, fishWeight,fishSize ));
-  spawnSound.play();
-  // physics.addParticle(fish);
-  
-  }
-  // ==text==
-  // spawnButton text
-  fill('black')
-  text('spawn a new fish!', spawnButton.x - 40, spawnButton.y + 30)
-
-  spawn()
- 
 }
 
+function draw() {
+  if (mouseIsPressed) {
+    foods.push(new Food(mouseX, mouseY, 5));
+  }
 
+  background("#e9d87bff");
+  noStroke();
+
+  water.show();
+  predator.run(world, water);
+  world.run();
+  flock.run(world, water);
+
+  for (let food of foods) {
+    food.run(world, water);
+    food.deathCheck(world, foods);
+  }
+
+  //  track the 'king' stats (for testing)
+  king = flock.boids[0];
+
+  fill("green");
+  circle(king.position.x, king.position.y - 15, 15);
+  text(
+    `
+    health: ${king.getHealth()}% \n
+    hunger: ${king.getHunger()}% 
+  `,
+    200,
+    200
+  );
+}
 
 /**
- * tests a function 
+ * tests a function
  * @param {string} label the error message. set to 'testing' to check the testing environment
  * @param {function} body the function to test
  * @returns {null}
  */
 function test(label, body) {
-    if(body() && label == 'testing') {
-      console.log('Testing Environment Initialized')
-      return
-    }
-    else if(!body()) console.log(`Failed: ${label}`)
+  if (body() && label == "testing") {
+    console.log("Testing Environment Initialized");
+    return;
+  } else if (!body()) console.log(`Failed: ${label}`);
 }
-
-
-
-/**
- * checks each tick if the maximum fish is reached, if not, spawns a new one.
- * @returns {null}
- */
-function spawn() {
-    for (let i=0; i< maxFish; i++){
-    fishes.push(new Fish(images[randomizer], random(0, width), random(0, height)))
- }
-}
-

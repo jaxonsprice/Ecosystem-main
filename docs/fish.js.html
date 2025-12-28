@@ -44,65 +44,296 @@
     <pre class="prettyprint source linenums lang-js"><span class="_char">_</span><code> /**
   * Fish class
   */
-class Fish{
+ class Fish {
+ 	/**
+ 	 * Fish class constructor.
+ 	 * @param {string} img file path to the image
+ 	 * @param {number} x the x-coordinate to initiate the fish
+ 	 * @param {number} y the y-coordinate to initiate the fish
+ 	 * @param {number} r the radius of the fish
+ 	 * @property {Object} P5.Vector 
+ 	 * @returns {Object} Fish 
+ 	 * @todo 
+ 	 * - I need to re-integrate the physics system, and create a seek method, and a way to update the rotation based on the current velocity heading.
+ 	 */
+ 	constructor(img, x, y, r) {
+ 		this.r = r;
+ 		this.img = img
+ 		this.mass = 3
+ 		this.volume = 6
+ 		this.position = createVector(x, y)
+ 		this.velocity = createVector(0, 0)
+ 		this.acceleration = createVector(0, 0)
+ 		this.maxSpeed = 15;
+ 		this.maxForce = .5;
+ 		this.debugMode = false;
+ 		this.direction = 'right'
+ 		this.wanderRadius = 2;
+		this.wanderTheta = PI/2 ;
+ 	}
+
+ 	/**
+ 	 * Description
+ 	 * @returns {Vector} The current position of the object.
+ 	 */
+
+ 	getPosition() {
+ 		return this.position;
+ 	}
+ 	/**
+ 	 * Draws the Fish object.
+ 	 * @returns {any}
+ 	 */
+ 	show() {
+ 		let angle = this.velocity.heading();
+
+ 		push()
+ 		translate(this.position.x, this.position.y)
+ 		push()
+ 		translate(this.r, this.r)
+ 		rotate(HALF_PI)
+ 		pop()
+ 		rotate(angle)
+
+ 		this.wireframe(d => rect(-this.r, -this.r / 2, this.r, this.r))
+ 		angleMode(RADIANS)
+
+ 		if (this.direction == 'right') {
+ 			image(this.img, -this.r, -this.r / 2, this.r, this.r)
+ 		} else {
+ 			scale(1, -1)
+ 			image(this.img, -this.r, -this.r / 2, this.r, this.r)
+ 		}
+
+ 		pop()
+ 		if (angle > -1 &amp;&amp; angle &lt; 1) {
+ 			this.direction = 'right'
+ 		} else {
+ 			this.direction = 'left'
+ 		}
+ 	}
+
+ 	/**
+ 	 * Increases the acceleration according to the force being applied.
+ 	 * @param {Vector} force
+ 	 * @returns {null}
+ 	 */
+ 	addForce(force) {
+ 		this.acceleration.add(force)
+ 	}
+    /**
+     * quickly chases after an object.
+     * @param {Number} x 
+     * @param {Number} y 
+     * @param {Number} speed 
+     * @returns p5.Vector
+     */
+ 	seek(x, y, speed) {
+ 		let target = createVector(x, y)
+ 		let direction = p5.Vector.sub(target, this.position)
+ 		let d = direction.mag();
+
+ 		if (d &lt; 100) {
+ 			let m = map(d, 0, 100, 0, speed);
+ 			direction.setMag(m)
+ 		} else {
+ 			direction.setMag(speed)
+ 		}
+ 		let steer = p5.Vector.sub(direction, this.velocity);
+ 		steer.limit(this.maxForce);
+ 	
+        return steer
+ 	}
+    /**
+     * 
+     * @param {Number} offset 
+     */
+ 	boundaries(offset) {
+ 		let desired = null;
+ 		if (this.position.x &lt; offset) {
+ 			desired = createVector(this.maxSpeed, this.velocity.y);
+ 		} else if (this.position.x > width - offset) {
+ 			desired = createVector(-this.maxSpeed, this.velocity.y);
+ 		}
+ 		if (this.position.y &lt; offset) {
+ 			desired = createVector(this.velocity.x, this.maxSpeed);
+ 		} else if (this.position.y > height - offset) {
+ 			desired = createVector(this.velocity.x, -this.maxSpeed);
+ 		}
+ 		if (desired !== null) {
+ 			desired.normalize();
+ 			desired.mult(this.maxSpeed);
+ 			let steer = p5.Vector.sub(desired, this.velocity);
+ 			steer.limit(this.maxForce * 10)
+ 			this.addForce(steer)
+ 		}
+ 	}
+
+    /**
+     * The fish wanders
+     */
+ 	wander() {
+ 		let wanderPoint = this.velocity.copy();
+ 		wanderPoint.setMag(100);
+ 		wanderPoint.add(this.position);
+ 		this.wireframe(d => line(this.position.x, this.position.y, wanderPoint.x, wanderPoint.y))
+
+ 		let wanderRadius = 50;
+ 		this.wireframe(d => circle(wanderPoint.x, wanderPoint.y, wanderRadius * 2))
+ 		
+ 		let theta =  this.wanderTheta + this.velocity.heading();
+ 		let x = wanderRadius * cos(theta);
+ 		let y = wanderRadius * sin(theta);
+ 		wanderPoint.add(x, y)
+ 		this.wireframe(d => line(this.position.x, this.position.y, wanderPoint.x, wanderPoint.y))
+ 		this.wireframe(d => circle(wanderPoint.x, wanderPoint.y, 10))
+ 		this.addForce(this.seek(wanderPoint.x, wanderPoint.y, this.maxSpeed / 2))
+		let displacementRange = random(0.2, 0.8)
+		this.wanderTheta += random(-displacementRange, displacementRange)
+ 	}
+
+   
+
+
+    /**
+     * calculate and add the flocking behaviors.
+     * @param {Array} boids 
+     */
+    flock(boids) {
+        
+        let separation = this.separate(boids);
+        let alignment = this.align(boids);
+        let cohesion = this.cohere(boids);
+
+        console.log(cohesion)
+        separation.mult(1.5);
+        alignment.mult(1);
+        cohesion.mult(1);
+        this.addForce(separation);
+        this.addForce(cohesion);
+        this.addForce(alignment);
+    }
+
+    /**
+     * 
+     * @param {Array} boids 
+     * @returns p5.Vector
+     */
+    align(boids) {
+
+        let neighborDistance = 50;
+        let sum = createVector(0, 0);
+        let count = 0;
+        for (let other of boids) {
+            let d = p5.Vector.dist(this.position, other.position);
+            if ((this != other) &amp;&amp; (d &lt; neighborDistance)) {
+                sum.add(other.velocity);
+                count ++
+            }
+        }
+        if (count > 0) {
+            sum.setMag(this.maxSpeed);
+            let steer = p5.Vector.sub(sum,this.velocity);
+            steer.limit(this.maxForce);
+            return steer
+        } else {
+            return createVector(0, 0)
+        }
+    }
+
      /**
-     * Fish class constructor.
-     * @param {string} img file path to the image
-     * @param {number} x the x-coordinate to initiate the fish
-     * @param {any} y the y-coordinate to initiate the fish
-     * @param {any} r the radius of the fish
-     * @property {Object} P5.Vector 
-     * @returns {Object} Fish 
-     * @todo 
-     * - I need to re-integrate the physics system, and create a seek method, and a way to update the rotation based on the current velocity heading.
+     * 
+     * @param {Array} flock
+     * @returns Vector
      */
-    constructor(img, x, y, r) {
-        this.r = r;
-        this.img = img
-        this.x = x
-        this.y = y
-        this.position = createVector(this.x, this.y)
-        this.velocity = createVector(0, 0)
-        this.acceleration = createVector(0,0)
+    separate(fish) {
+        let desiredSeparation = 20;
+        let sum = createVector(0, 0);
+        let count = 0;
+        for (let other of fish) {
+            let d = p5.Vector.dist(this.position, other.position);
+            if (this !== other &amp;&amp; d &lt; desiredSeparation) {
+                let diff = p5.Vector.sub(this.position, other.position);
+                diff.setMag(1 / d);
+                sum.add(diff);
+                count++;
+            }
+        }
+        if ( count > 0) {
+            sum.setMag(this.maxSpeed);
+            let steer = p5.Vector.sub(sum, this.velocity);
+            steer.limit(this.maxForce)
+            return steer
+        }
+        else {
+            return createVector(0, 0)
+        }
     }
 
     /**
-     * Description
-     * @returns {Vector} The current position of the object.
+     * 
+     * @param {Array} boids 
+     * @returns p5.Vector
      */
-
-    getPosition(){
-        return this.position;
+    cohere(boids) {
+        let neighborDistance = 50;
+        let sum = createVector(0, 0);
+        let count = 0;
+        for(let other of boids) {
+            let d = p5.Vector.dist(this.position, other.position);
+            if ((this != other) &amp;&amp; (d &lt; neighborDistance)) {
+                sum.add(other.position);
+                count++
+            }
+        }
+        if (count > 0) {
+            sum.div(count);
+            return this.seek(sum.x, sum.y, this.maxSpeed)
+        } else {
+            return createVector(0, 0)
+        }
     }
+
+ 	/**
+ 	 * Adds any acceleration, updates the position, then sets acceleration to zero.
+ 	 * @returns {null}
+ 	 */
+ 	update() {
+ 		this.velocity.add(this.acceleration);
+ 		this.position.add(this.velocity);
+ 		this.acceleration.mult(0)
+ 	}
     /**
-     * Draws the Fish object.
-     * @returns {any}
+     * Requires a debug variable
+     * @param {String} string 'on' or 'off'. when set to 'on', the debug function will activate
      */
-    show(){
-        image(this.img, 0, 0, this.r, this.r)
-    }
-
+ 	debug(string) {
+ 		if (string === 'on') {
+ 			this.debugMode = true;
+ 		} else {
+ 			this.debugMode = false;
+ 		}
+ 	}
     /**
-     * Increases the acceleration according to the force being applied.
-     * @param {Vector} force
-     * @returns {null}
+     * A debugging function. Automatically styled and only activated when debug is set to 'on'
+     * @param {Function} drawing a function to draw
+     * @returns 
      */
-    addForce(force){
-        this.acceleration.add(force)
-    }
-
-    /**
-     * Adds any acceleration, updates the position, then sets acceleration to zero.
-     * @returns {null}
+ 	wireframe(drawing) {
+ 		if (this.debugMode == true) {
+ 			noFill();
+ 			stroke('green')
+ 			drawing()
+ 		} else return;
+ 	}
+     /**
+     * runs the fish
+     * @param {Array} flock the flock this fish belongs to.
      */
-    update(){
-        this.velocity.add(this.acceleration);
-        this.position.add(this.velocity);
-        this.acceleration.mult(0)
+    run(flock) {
+        this.flock(flock);
     }
-}
-
-</code></pre>
+ }</code></pre>
 </article>
 
 
@@ -120,7 +351,7 @@ class Fish{
                     Documentation generated by <a rel="external" href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a><wbr>
                     using <a rel="external" href="https://github.com/amekusa/docolatte">Docolatte</a> theme
                     
-                    <wbr>on <time datetime="2025-12-01T06:03:49.386Z">Mon, 01 Dec 2025 06:03:49 GMT</time>
+                    <wbr>on <time datetime="2025-12-23T09:51:52.799Z">Tue, 23 Dec 2025 09:51:52 GMT</time>
                     
                 </p>
                 
@@ -160,13 +391,13 @@ class Fish{
 </div>
 
             <div class="toc">
-                <nav class="menu"><h3>Classes</h3><ul class="wbr"><li class="has-child"><a href="Fish.html">Fish</a><ul class="functions has-icons wbr"><li><a href="Fish.html#addForce">add<wbr>Force</a></li><li><a href="Fish.html#getPosition">get<wbr>Position</a></li><li><a href="Fish.html#show">show</a></li><li><a href="Fish.html#update">update</a></li></ul></li><li class="has-child"><a href="World.html">World</a><ul class="functions has-icons wbr"><li><a href="World.html#draw">draw</a></li></ul></li></ul></nav><nav class="menu"><h3>Global</h3><ul class="wbr"><li><a href="global.html#spawn">spawn</a></li><li><a href="global.html#test">test</a></li><li><a href="global.html">See<wbr> All</a></li></ul></nav>
+                <nav class="menu"><h3>Classes</h3><ul class="wbr"><li class="has-child"><a href="Fish.html">Fish</a><ul class="functions has-icons wbr"><li><a href="Fish.html#addForce">add<wbr>Force</a></li><li><a href="Fish.html#align">align</a></li><li><a href="Fish.html#boundaries">boundaries</a></li><li><a href="Fish.html#cohere">cohere</a></li><li><a href="Fish.html#debug">debug</a></li><li><a href="Fish.html#flock">flock</a></li><li><a href="Fish.html#getPosition">get<wbr>Position</a></li><li><a href="Fish.html#run">run</a></li><li><a href="Fish.html#seek">seek</a></li><li><a href="Fish.html#separate">separate</a></li><li><a href="Fish.html#show">show</a></li><li><a href="Fish.html#update">update</a></li><li><a href="Fish.html#wander">wander</a></li><li><a href="Fish.html#wireframe">wireframe</a></li></ul></li><li class="has-child"><a href="Flock.html">Flock</a><ul class="functions has-icons wbr"><li><a href="Flock.html#addBoid">add<wbr>Boid</a></li><li><a href="Flock.html#run">run</a></li></ul></li><li class="has-child"><a href="Water.html">Water</a><ul class="functions has-icons wbr"><li><a href="Water.html#buoyancyForce">buoyancy<wbr>Force</a></li><li><a href="Water.html#contains">contains</a></li></ul></li><li><a href="World.html">World</a></li></ul></nav><nav class="menu"><h3>Global</h3><ul class="wbr"><li><a href="global.html#test">test</a></li><li><a href="global.html">See<wbr> All</a></li></ul></nav>
             </div>
         </div>
     </div>
 </div>
 
-<script id="docolatte-search-items" type="application/json">[{"$":["Fish.html","Fish"],"a":"Fish","b":"Fish","c":"fish.js","d":"Fish class","e":"Fish class constructor."},{"$":["Fish.html#addForce","Fish#addForce"],"a":"addForce","b":"Fish#addForce","c":"fish.js","e":"Increases the acceleration according to the force being applied."},{"$":["Fish.html#getPosition","Fish#getPosition"],"a":"getPosition","b":"Fish#getPosition","c":"fish.js","e":"Description"},{"$":["Fish.html#show","Fish#show"],"a":"show","b":"Fish#show","c":"fish.js","e":"Draws the Fish object."},{"$":["Fish.html#update","Fish#update"],"a":"update","b":"Fish#update","c":"fish.js","e":"Adds any acceleration, updates the position, then sets acceleration to zero."},{"$":["World.html","World"],"a":"World","b":"World","c":"world.js","d":"Holds the world info and it's methods."},{"$":["World.html#draw","World#draw"],"a":"draw","b":"World#draw","c":"world.js","e":"draws the world to the canvas"},{"$":["global.html#spawn","spawn"],"a":"spawn","b":"spawn","c":"sketch.js","e":"checks each tick if the maximum fish is reached, if not, spawns a new one."},{"$":["global.html#test","test"],"a":"test","b":"test","c":"sketch.js","e":"tests a function"},{"$":["global.html","Global"],"b":"global"}]</script><script id="docolatte-search-index" type="application/json">{"keys":[{"path":["a"],"id":"a","weight":10,"src":"a"},{"path":["b"],"id":"b","weight":9,"src":"b"},{"path":["c"],"id":"c","weight":6,"src":"c"},{"path":["d"],"id":"d","weight":2,"src":"d"},{"path":["e"],"id":"e","weight":2,"src":"e"}],"records":[{"i":0,"$":{"0":{"v":"Fish","n":1},"1":{"v":"Fish","n":1},"2":{"v":"fish.js","n":1},"3":{"v":"Fish class","n":0.707},"4":{"v":"Fish class constructor.","n":0.577}}},{"i":1,"$":{"0":{"v":"addForce","n":1},"1":{"v":"Fish#addForce","n":1},"2":{"v":"fish.js","n":1},"4":{"v":"Increases the acceleration according to the force being applied.","n":0.333}}},{"i":2,"$":{"0":{"v":"getPosition","n":1},"1":{"v":"Fish#getPosition","n":1},"2":{"v":"fish.js","n":1},"4":{"v":"Description","n":1}}},{"i":3,"$":{"0":{"v":"show","n":1},"1":{"v":"Fish#show","n":1},"2":{"v":"fish.js","n":1},"4":{"v":"Draws the Fish object.","n":0.5}}},{"i":4,"$":{"0":{"v":"update","n":1},"1":{"v":"Fish#update","n":1},"2":{"v":"fish.js","n":1},"4":{"v":"Adds any acceleration, updates the position, then sets acceleration to zero.","n":0.302}}},{"i":5,"$":{"0":{"v":"World","n":1},"1":{"v":"World","n":1},"2":{"v":"world.js","n":1},"3":{"v":"Holds the world info and it's methods.","n":0.378}}},{"i":6,"$":{"0":{"v":"draw","n":1},"1":{"v":"World#draw","n":1},"2":{"v":"world.js","n":1},"4":{"v":"draws the world to the canvas","n":0.408}}},{"i":7,"$":{"0":{"v":"spawn","n":1},"1":{"v":"spawn","n":1},"2":{"v":"sketch.js","n":1},"4":{"v":"checks each tick if the maximum fish is reached, if not, spawns a new one.","n":0.258}}},{"i":8,"$":{"0":{"v":"test","n":1},"1":{"v":"test","n":1},"2":{"v":"sketch.js","n":1},"4":{"v":"tests a function","n":0.577}}},{"i":9,"$":{"1":{"v":"global","n":1}}}]}</script><script id="docolatte-search-options" type="application/json">{"keys":[{"name":"a","weight":10},{"name":"b","weight":9},{"name":"c","weight":6},{"name":"d","weight":2},{"name":"e","weight":2}]}</script>
+<script id="docolatte-search-items" type="application/json">[{"$":["Fish.html","Fish"],"a":"Fish","b":"Fish","c":"fish.js","d":"Fish class","e":"Fish class constructor."},{"$":["Fish.html#addForce","Fish#addForce"],"a":"addForce","b":"Fish#addForce","c":"fish.js","e":"Increases the acceleration according to the force being applied."},{"$":["Fish.html#align","Fish#align"],"a":"align","b":"Fish#align","c":"fish.js"},{"$":["Fish.html#boundaries","Fish#boundaries"],"a":"boundaries","b":"Fish#boundaries","c":"fish.js"},{"$":["Fish.html#cohere","Fish#cohere"],"a":"cohere","b":"Fish#cohere","c":"fish.js"},{"$":["Fish.html#debug","Fish#debug"],"a":"debug","b":"Fish#debug","c":"fish.js","e":"Requires a debug variable"},{"$":["Fish.html#flock","Fish#flock"],"a":"flock","b":"Fish#flock","c":"fish.js","e":"calculate and add the flocking behaviors."},{"$":["Fish.html#getPosition","Fish#getPosition"],"a":"getPosition","b":"Fish#getPosition","c":"fish.js","e":"Description"},{"$":["Fish.html#run","Fish#run"],"a":"run","b":"Fish#run","c":"fish.js","e":"runs the fish"},{"$":["Fish.html#seek","Fish#seek"],"a":"seek","b":"Fish#seek","c":"fish.js","e":"quickly chases after an object."},{"$":["Fish.html#separate","Fish#separate"],"a":"separate","b":"Fish#separate","c":"fish.js"},{"$":["Fish.html#show","Fish#show"],"a":"show","b":"Fish#show","c":"fish.js","e":"Draws the Fish object."},{"$":["Fish.html#update","Fish#update"],"a":"update","b":"Fish#update","c":"fish.js","e":"Adds any acceleration, updates the position, then sets acceleration to zero."},{"$":["Fish.html#wander","Fish#wander"],"a":"wander","b":"Fish#wander","c":"fish.js","e":"The fish wanders"},{"$":["Fish.html#wireframe","Fish#wireframe"],"a":"wireframe","b":"Fish#wireframe","c":"fish.js","e":"A debugging function. Automatically styled and only activated when debug is set to 'on'"},{"$":["Flock.html","Flock"],"a":"Flock","b":"Flock","c":"flock.js","d":"Flock class","e":"constructor"},{"$":["Flock.html#addBoid","Flock#addBoid"],"a":"addBoid","b":"Flock#addBoid","c":"flock.js","e":"adds a boid to the array"},{"$":["Flock.html#run","Flock#run"],"a":"run","b":"Flock#run","c":"flock.js","e":"runs the boids"},{"$":["Water.html","Water"],"a":"Water","b":"Water","c":"water.js","d":"The Water Object","e":"The water object. Input the coordinates of the upper-left corner, then the width and height."},{"$":["Water.html#buoyancyForce","Water#buoyancyForce"],"a":"buoyancyForce","b":"Water#buoyancyForce","c":"water.js","e":"get the buoyancy force of an object based on the volume and gravity."},{"$":["Water.html#contains","Water#contains"],"a":"contains","b":"Water#contains","c":"water.js","e":"checks wether the provided vector is within the bounds of the water."},{"$":["World.html","World"],"a":"World","b":"World","c":"world.js","d":"Holds the world info and it's methods."},{"$":["global.html#test","test"],"a":"test","b":"test","c":"sketch.js","e":"tests a function"},{"$":["global.html","Global"],"b":"global"}]</script><script id="docolatte-search-index" type="application/json">{"keys":[{"path":["a"],"id":"a","weight":10,"src":"a"},{"path":["b"],"id":"b","weight":9,"src":"b"},{"path":["c"],"id":"c","weight":6,"src":"c"},{"path":["d"],"id":"d","weight":2,"src":"d"},{"path":["e"],"id":"e","weight":2,"src":"e"}],"records":[{"i":0,"$":{"0":{"v":"Fish","n":1},"1":{"v":"Fish","n":1},"2":{"v":"fish.js","n":1},"3":{"v":"Fish class","n":0.707},"4":{"v":"Fish class constructor.","n":0.577}}},{"i":1,"$":{"0":{"v":"addForce","n":1},"1":{"v":"Fish#addForce","n":1},"2":{"v":"fish.js","n":1},"4":{"v":"Increases the acceleration according to the force being applied.","n":0.333}}},{"i":2,"$":{"0":{"v":"align","n":1},"1":{"v":"Fish#align","n":1},"2":{"v":"fish.js","n":1}}},{"i":3,"$":{"0":{"v":"boundaries","n":1},"1":{"v":"Fish#boundaries","n":1},"2":{"v":"fish.js","n":1}}},{"i":4,"$":{"0":{"v":"cohere","n":1},"1":{"v":"Fish#cohere","n":1},"2":{"v":"fish.js","n":1}}},{"i":5,"$":{"0":{"v":"debug","n":1},"1":{"v":"Fish#debug","n":1},"2":{"v":"fish.js","n":1},"4":{"v":"Requires a debug variable","n":0.5}}},{"i":6,"$":{"0":{"v":"flock","n":1},"1":{"v":"Fish#flock","n":1},"2":{"v":"fish.js","n":1},"4":{"v":"calculate and add the flocking behaviors.","n":0.408}}},{"i":7,"$":{"0":{"v":"getPosition","n":1},"1":{"v":"Fish#getPosition","n":1},"2":{"v":"fish.js","n":1},"4":{"v":"Description","n":1}}},{"i":8,"$":{"0":{"v":"run","n":1},"1":{"v":"Fish#run","n":1},"2":{"v":"fish.js","n":1},"4":{"v":"runs the fish","n":0.577}}},{"i":9,"$":{"0":{"v":"seek","n":1},"1":{"v":"Fish#seek","n":1},"2":{"v":"fish.js","n":1},"4":{"v":"quickly chases after an object.","n":0.447}}},{"i":10,"$":{"0":{"v":"separate","n":1},"1":{"v":"Fish#separate","n":1},"2":{"v":"fish.js","n":1}}},{"i":11,"$":{"0":{"v":"show","n":1},"1":{"v":"Fish#show","n":1},"2":{"v":"fish.js","n":1},"4":{"v":"Draws the Fish object.","n":0.5}}},{"i":12,"$":{"0":{"v":"update","n":1},"1":{"v":"Fish#update","n":1},"2":{"v":"fish.js","n":1},"4":{"v":"Adds any acceleration, updates the position, then sets acceleration to zero.","n":0.302}}},{"i":13,"$":{"0":{"v":"wander","n":1},"1":{"v":"Fish#wander","n":1},"2":{"v":"fish.js","n":1},"4":{"v":"The fish wanders","n":0.577}}},{"i":14,"$":{"0":{"v":"wireframe","n":1},"1":{"v":"Fish#wireframe","n":1},"2":{"v":"fish.js","n":1},"4":{"v":"A debugging function. Automatically styled and only activated when debug is set to 'on'","n":0.267}}},{"i":15,"$":{"0":{"v":"Flock","n":1},"1":{"v":"Flock","n":1},"2":{"v":"flock.js","n":1},"3":{"v":"Flock class","n":0.707},"4":{"v":"constructor","n":1}}},{"i":16,"$":{"0":{"v":"addBoid","n":1},"1":{"v":"Flock#addBoid","n":1},"2":{"v":"flock.js","n":1},"4":{"v":"adds a boid to the array","n":0.408}}},{"i":17,"$":{"0":{"v":"run","n":1},"1":{"v":"Flock#run","n":1},"2":{"v":"flock.js","n":1},"4":{"v":"runs the boids","n":0.577}}},{"i":18,"$":{"0":{"v":"Water","n":1},"1":{"v":"Water","n":1},"2":{"v":"water.js","n":1},"3":{"v":"The Water Object","n":0.577},"4":{"v":"The water object. Input the coordinates of the upper-left corner, then the width and height.","n":0.258}}},{"i":19,"$":{"0":{"v":"buoyancyForce","n":1},"1":{"v":"Water#buoyancyForce","n":1},"2":{"v":"water.js","n":1},"4":{"v":"get the buoyancy force of an object based on the volume and gravity.","n":0.277}}},{"i":20,"$":{"0":{"v":"contains","n":1},"1":{"v":"Water#contains","n":1},"2":{"v":"water.js","n":1},"4":{"v":"checks wether the provided vector is within the bounds of the water.","n":0.289}}},{"i":21,"$":{"0":{"v":"World","n":1},"1":{"v":"World","n":1},"2":{"v":"world.js","n":1},"3":{"v":"Holds the world info and it's methods.","n":0.378}}},{"i":22,"$":{"0":{"v":"test","n":1},"1":{"v":"test","n":1},"2":{"v":"sketch.js","n":1},"4":{"v":"tests a function","n":0.577}}},{"i":23,"$":{"1":{"v":"global","n":1}}}]}</script><script id="docolatte-search-options" type="application/json">{"keys":[{"name":"a","weight":10},{"name":"b","weight":9},{"name":"c","weight":6},{"name":"d","weight":2},{"name":"e","weight":2}]}</script>
 
 </body>
 </html>

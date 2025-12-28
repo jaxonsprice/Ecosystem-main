@@ -1,7 +1,29 @@
-<p align="center">
-  <a href="" rel="noopener">
- <img width=200px height=200px src="https://images.pexels.com/photos/128756/pexels-photo-128756.jpeg" alt="Project logo"></a>
-</p>
+```
+                         
+                         
+                         
+                  j/     
+                 j≤g     
+                ™◊◊◊©    
+     ˙À        ™◊◊«∂Q˘   
+     ]◊/      ™◊◊Q∂±±    
+    ˙…≤À˙    ™◊◊«±◊QQ˘   
+    j◊◊◊À˙   ]≤◊Q◊±◊◊f   
+    )◊≤◊◊±÷ø˘]◊◊◊◊◊◊≤◊/  
+     j◊≤◊±±±g:4◊◊◊◊◊◊◊◊, 
+     )◊≤◊±±±±Q◊◊◊◊◊◊≤◊◊f 
+      j≤◊◊«±±±Q◊««◊◊◊≤◊' 
+     j◊◊◊◊«±±P)◊±±±««0˝  
+     …◊≤±∂◊Q◊ y±QWMW±f   
+    ˘≤◊◊◊QQ◊\÷◊Q∂f˘j±Q˘  
+    ™◊≤◊◊◊œ˙j◊◊±P˘˙±±±   
+    ]≤◊≤•'  j≤◊@-  ±◊◊   
+    ˘◊◊œ    )◊@˘   )◊◊   
+     ]˝      ˘˙     ]@˙  
+     ˙              ˙˝   
+                       
+```
+
 
 <h3 align="center">Ecosystem Project</h3>
 
@@ -62,9 +84,7 @@ npm -v # Should print "11.6.2".
 ### Installing
 
 
-```
-npm run devStart
-```
+
 
 
 ## 🔧 Running the tests <a name = "tests"></a>
@@ -110,6 +130,12 @@ fish.addForce(force)
 
 
 ## 🚀 Deployment <a name = "deployment"></a>
+
+start the live server.
+```
+npm run devStart
+```
+
 
 ```
 npm run buildDocs
