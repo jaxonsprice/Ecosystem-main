@@ -60,14 +60,6 @@ export class World {
 
     this.schoolFishImage = await this.p.loadImage('images/Shubunkin - Keith Lau (CookieUnleashed).png')
 
-    // let images = await this.file.loadImageList();
-    // let addresses = this.file.getAddresses(images);
-
-    // for (let i = 0; i < addresses.length; i++) {
-    //   this.file.images[i] = await this.file.loadFish(addresses, i);
-      
-    // }
-
     this.predator = new Predator(
       this.p.random(0, this.p.width),
       this.p.random(0, this.p.height),
