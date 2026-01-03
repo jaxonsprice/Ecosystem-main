@@ -6,5 +6,5 @@
     "*.js",
     "**/*.js",
     "/Users/jaxonprice/.vscode/extensions/samplavigne.p5-vscode-1.2.16/p5types/global.d.ts"
-  ]
+, "src/creatures/school-fish.ts", "src/creatures/predator.ts", "src/creatures/flock.ts", "src/creatures/fish.ts", "src/data/file.ts", "src/data/sound.ts", "src/other/food.ts", "src/physics/mover.ts", "src/world/world.ts", "src/world/water.ts", "sketch.ts"  ]
 }

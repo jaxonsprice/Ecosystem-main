@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "outDir": "public/built",
+        "allowJs": true,
+        "target": "es5",
+        "noImplicitReturns": false,
+        "noFallthroughCasesInSwitch": false,
+        "module":"es6",
+        "allowSyntheticDefaultImports": true,
+        "jsx":"react",
+        "moduleResolution": "node",
+        "esModuleInterop": true
+    },
+    "include": ["./public/src/**/*"]
+}

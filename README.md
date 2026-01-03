@@ -1,28 +1,4 @@
-```
-                         
-                         
-                         
-                  j/     
-                 j≤g     
-                ™◊◊◊©    
-     ˙À        ™◊◊«∂Q˘   
-     ]◊/      ™◊◊Q∂±±    
-    ˙…≤À˙    ™◊◊«±◊QQ˘   
-    j◊◊◊À˙   ]≤◊Q◊±◊◊f   
-    )◊≤◊◊±÷ø˘]◊◊◊◊◊◊≤◊/  
-     j◊≤◊±±±g:4◊◊◊◊◊◊◊◊, 
-     )◊≤◊±±±±Q◊◊◊◊◊◊≤◊◊f 
-      j≤◊◊«±±±Q◊««◊◊◊≤◊' 
-     j◊◊◊◊«±±P)◊±±±««0˝  
-     …◊≤±∂◊Q◊ y±QWMW±f   
-    ˘≤◊◊◊QQ◊\÷◊Q∂f˘j±Q˘  
-    ™◊≤◊◊◊œ˙j◊◊±P˘˙±±±   
-    ]≤◊≤•'  j≤◊@-  ±◊◊   
-    ˘◊◊œ    )◊@˘   )◊◊   
-     ]˝      ˘˙     ]@˙  
-     ˙              ˙˝   
-                       
-```
+
 
 
 <h3 align="center">Ecosystem Project</h3>
@@ -64,6 +40,22 @@ You can download the documentation in the `./out` directory
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See [deployment](#deployment) for notes on how to deploy the project on a live system.
 
+to run the live server, run
+(right now there are performance issues)
+```sh
+npm run start
+```
+to build the app
+```sh
+npm run build
+```
+then
+
+```sh
+npm run appStart
+```
+to run the app.
+
 ### Prerequisites
 
 Node.js:
@@ -82,8 +74,6 @@ npm -v # Should print "11.6.2".
 ```
 
 ### Installing
-
-
 
 
 
@@ -114,18 +104,17 @@ Give an example
 
 ## 🎈 Usage <a name="usage"></a>
 
-This simulation uses Euler physics integration. 
-The `velocity` property of the fish is influenced by the method `addForce()`, which takes a p5.Vector object.
+This project uses electron and p5.js. the application window and menu options are managed in the `app.js` and `preload.js` files. The files in the `public` directory are served to the electron application. This directory contains all the scripts for running the simulation, as well as all of the assets.
 
-```javascript
-// create a p5 Vector class. 
-force = createVector(-1, 0)
+The project is currently written in typescript, and p5.js is run using instanced mode. All object files need to import the p5.js library and each p5.js function must contain a reference to the p5 object.
 
-// Moves the fish horizontally.
-fish.addForce(force)
-```
 
 ### Building the Docs
+
+
+```
+npm run buildDocs
+```
 
 
 
@@ -133,14 +122,10 @@ fish.addForce(force)
 
 start the live server.
 ```
-npm run devStart
+npm run start
 ```
 
 
-```
-npm run buildDocs
-```
-to build the API documentation and include the README.
 
 ## ⛏️ Built Using <a name = "built_using"></a>
 
